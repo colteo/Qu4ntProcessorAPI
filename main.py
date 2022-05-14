@@ -2,33 +2,46 @@ from app import app, mongo
 from bson.json_util import dumps
 from bson.objectid import ObjectId
 from flask import jsonify, request
+from subprocess import Popen
 
 
-@app.route('/qu4nt_inputs', methods=['POST'])
-def add_inputs():
+def qu4nt_launcher(settings_object_id):
+    qu4nt_root_path = "/home/simone/Scrivania/trading/codice_nuovo/ok/Qu4ntProcessor/"
+    command = "python3 {}main.py --settings_id {}".format(qu4nt_root_path, settings_object_id)
+    proc = Popen(command, shell=True,
+                 stdin=None, stdout=None, stderr=None, close_fds=True)
+    return proc.pid
+
+
+@app.route('/run_qu4nt', methods=['POST'])
+def run_qu4nt():
     if request.method == 'POST':
-        _json = request.json
-        result = mongo.db.qu4nt_inputs.insert_one(_json)
-        object_id = dict({"id": str(result.inserted_id)})
-        resp = jsonify(object_id)
+        created_setting = mongo.db.qu4nt_settings.insert_one(request.json)
+        process_id = qu4nt_launcher(str(created_setting.inserted_id))
+        mongo.db.qu4nt_settings.update_one({'_id': created_setting.inserted_id}, {'$set': {"process_id": process_id}})
+        result = {
+            "settings_object_id": str(created_setting.inserted_id),
+            "process_id": process_id,
+        }
+        resp = jsonify(result)
         resp.status_code = 201
         return resp
     else:
         return not_found()
 
 
-@app.route('/qu4nt_inputs/<object_id>')
-def get_input_detail(object_id):
-    if ObjectId.is_valid(object_id):
-        result = mongo.db.qu4nt_inputs.find_one({'_id': ObjectId(object_id)})
+@app.route('/get_settings/<settings_object_id>')
+def get_settings(settings_object_id):
+    if ObjectId.is_valid(settings_object_id):
+        result = mongo.db.qu4nt_settings.find_one({'_id': ObjectId(settings_object_id)})
         return check_result(result)
     else:
         return jsonify({})
 
 
-@app.route('/qu4nt_inputs')
-def get_inputs():
-    result = mongo.db.qu4nt_inputs.find()
+@app.route('/get_settings')
+def get_setting():
+    result = mongo.db.qu4nt_settings.find()
     return check_result(result)
 
 
@@ -53,4 +66,4 @@ def not_found(error=None):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(port=8081)
