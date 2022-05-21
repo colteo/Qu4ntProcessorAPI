@@ -10,7 +10,7 @@ from sys import platform
 def get_qu4nt_processor_paths():
     if platform == "linux" or platform == "linux2":
         this_file_path = os.path.dirname(os.path.dirname(__file__))
-        processor_path = os.path.abspath(os.path.join(this_file_path, os.pardir, "Qu4ntProcessor", ""))
+        processor_path = os.path.abspath(os.path.join(this_file_path, "Qu4ntProcessor", ""))
         processor_main_path = os.path.join(processor_path, "main.py")
         venv_path = os.path.abspath(os.path.join(processor_path, "venv", "bin", "python3", ""))
     elif platform == "win32":
